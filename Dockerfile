@@ -76,6 +76,7 @@ RUN composer install \
 
 # 3. Copy application codebase
 COPY . .
+RUN rm -f public/hot
 
 # 4. Copy pre-built frontend assets from Node stage
 COPY --from=node_builder /app/public/build ./public/build

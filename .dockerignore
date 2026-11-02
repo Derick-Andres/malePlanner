@@ -9,5 +9,8 @@ storage/framework/sessions/*
 storage/framework/views/*
 storage/logs/*
 tests
+public/hot
+.phpunit.cache
+database/*.sqlite
 Dockerfile
 .dockerignore
