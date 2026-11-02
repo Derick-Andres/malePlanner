@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust reverse proxies (Render, Cloudflare, load balancers) for HTTPS termination
+        $middleware->trustProxies(at: '*');
+
         // Global Web Middleware Stack
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
