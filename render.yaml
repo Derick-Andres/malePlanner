@@ -1,30 +1,70 @@
+# Coolify: Application > Docker Compose > Compose Location: /coolify.yml
+# Configure APP_URL and APP_KEY in Coolify before deploying.
+# Generate APP_KEY once with: php artisan key:generate --show
+# Keep the same APP_KEY across deployments.
 services:
-  - type: web
-    name: laravel-inertia-booking-saas
-    runtime: docker
-    plan: free
-    region: oregon
-    autoDeploy: true
-    dockerfilePath: ./Dockerfile
-    healthCheckPath: /
-    envVars:
-      - key: APP_NAME
-        value: SmartBooking
-      - key: APP_ENV
-        value: production
-      - key: APP_DEBUG
-        value: false
-      - key: APP_URL
-        value: https://laravel-inertia-booking-saas.onrender.com
-      - key: ASSET_URL
-        value: https://laravel-inertia-booking-saas.onrender.com
-      - key: DB_CONNECTION
-        value: sqlite
-      - key: DB_DATABASE
-        value: /var/www/html/database/database.sqlite
-      - key: SESSION_DRIVER
-        value: database
-      - key: CACHE_STORE
-        value: database
-      - key: QUEUE_CONNECTION
-        value: sync
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      APP_NAME: "${APP_NAME:-malePlanner}"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: "${APP_KEY:?Configure APP_KEY in Coolify}"
+      APP_URL: "${APP_URL:?Configure APP_URL in Coolify}"
+      ASSET_URL: "${APP_URL}"
+      APP_LOCALE: pt_BR
+      APP_FALLBACK_LOCALE: en
+      APP_FAKER_LOCALE: pt_BR
+      TZ: America/Sao_Paulo
+      PORT: "80"
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /data/database.sqlite
+      DB_FOREIGN_KEYS: "true"
+      SESSION_DRIVER: database
+      SESSION_SECURE_COOKIE: "true"
+      SESSION_ENCRYPT: "true"
+      CACHE_STORE: database
+      QUEUE_CONNECTION: sync
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      MAIL_MAILER: "${MAIL_MAILER:-log}"
+      MAIL_HOST: "${MAIL_HOST:-localhost}"
+      MAIL_PORT: "${MAIL_PORT:-587}"
+      MAIL_USERNAME: "${MAIL_USERNAME:-}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
+      MAIL_SCHEME: "${MAIL_SCHEME:-smtp}"
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-noreply@example.com}"
+      MAIL_FROM_NAME: "${APP_NAME:-malePlanner}"
+    volumes:
+      - database-data:/data
+      - storage-data:/var/www/html/storage
+    # Overrides the Dockerfile CMD: no demo seed or temporary APP_KEY.
+    command:
+      - sh
+      - -ec
+      - |
+        mkdir -p /data storage/app/public storage/app/private storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+        touch /data/database.sqlite
+        chown -R www-data:www-data /data storage bootstrap/cache
+        php artisan optimize:clear
+        php artisan migrate --force
+        php artisan storage:link --force
+        php artisan config:cache
+        php artisan view:cache
+        exec php artisan serve --host=0.0.0.0 --port=80
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:80/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  database-data:
+  storage-data:
+
